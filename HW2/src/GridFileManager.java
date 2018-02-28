@@ -28,7 +28,7 @@ public class GridFileManager {
 	        	//close connection
 	            if (conn != null) {
 	                conn.close();
-	                System.out.println("Close Connection");
+	                System.out.println("Close Connection \n");
 	            }
 	        } catch (SQLException ex) {
 	            System.out.println(ex.getMessage());
@@ -114,6 +114,47 @@ public class GridFileManager {
 	
 	public boolean createGridFile(String fileName, int lowX, int highX, int numLinesX, int lowY, int highY, int numLinesY, int numBuckets){
 		System.out.print(fileName + " " + lowX + " " + highX + " " + numLinesX + " " + lowY + " " + highY + " " + numLinesY + " " + numBuckets + "\n");
+		Connection conn = null;
+		try{
+			//connect to SQLite
+			System.out.println("Connecting to SQLite Server...");
+			String url = "jdbc:sqlite:" + path;
+			conn = DriverManager.getConnection(url);
+			System.out.println("Connection to database has been established.");
+            
+			//create row in GRID_FILE
+	        String createGridFile = "INSERT INTO GRID_FILE VALUES ( 1, " + "'" + fileName + "' , " + numBuckets+ ")";
+	        PreparedStatement createFile = conn.prepareStatement(createGridFile);
+	        createFile.execute();
+	        System.out.println("Created GRID FILE");
+	        
+	        //create row in GRIDX
+	        String createGridX = "INSERT INTO GRIDX VALUES ( 1, " + lowX + "," + highX + "," + numLinesX + ")";
+	        PreparedStatement createX = conn.prepareStatement(createGridX);
+	        createX.execute();
+	        System.out.println("Created GRIDX row");        
+	        
+	        //create row in GRIDY
+	        String createGridY = "INSERT INTO GRIDY VALUES (1, " + lowY + "," + highY + "," + numLinesY + ")";
+	        PreparedStatement createY = conn.prepareStatement(createGridY);
+	        createY.execute();
+	        System.out.println("Created GRIDY row");
+	        return true;
+	        
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    } finally {
+	        try {
+	        	//close connection
+	            if (conn != null) {
+	                conn.close();
+	                System.out.println("Close Connection \n");
+	            }
+	        } catch (SQLException ex) {
+	            System.out.println(ex.getMessage());
+	            			
+	        }
+	    }
 		return false;
 	}
 	
@@ -130,8 +171,9 @@ public class GridFileManager {
 	//create the tables here
 	public static void createTables(Connection conn){
 		try{
-			String createGridFile = "Create Table GRID_FILE(ID INTEGER PRIMARY KEY, NAME VARCHAR(64), NUM_BUCKETS);";
+			String createGridFile = "Create Table GRID_FILE(ID INTEGER PRIMARY KEY, NAME VARCHAR(64), NUM_BUCKETS INTEGER);";
 			PreparedStatement create = conn.prepareStatement(createGridFile);
+			create.execute();
 	        System.out.println("Created GRID FILE");
 	        
 			String createGridX = "Create Table GRIDX(GRID_FILE_ID INTEGER PRIMARY KEY, LOW_VALUE INTEGER, HIGH_VALUE INTEGER, NUM_LINES INTEGER);";
