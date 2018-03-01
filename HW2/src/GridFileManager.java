@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class GridFileManager {
 	
 	//path to test.sqlite file PLEASE CHANGE THIS
-	private String path = "/Users/administrator/Documents/Year4.5/CS157B/HW2/157B-HW2/HW2/src/test.sqlite";
+	private String path = "src/test.sqlite";
 	
 	public GridFileManager(String databaseName) {
 		Connection conn = null;
@@ -47,7 +47,7 @@ public class GridFileManager {
 		
 		try {
 			//read from the instructions.txt file
-			File file = new File("/Users/administrator/Documents/Year4.5/CS157B/HW2/157B-HW2/HW2/src/instructions.txt");
+			File file = new File("src/" + filename);
 			Scanner in = new Scanner(file);
 			while(in.hasNextLine()){
 				String file_name = "";
@@ -66,7 +66,12 @@ public class GridFileManager {
 							int highY = in.nextInt();
 							int numLinesY = in.nextInt();
 							int numBuckets = in.nextInt();
-							fileManager.createGridFile(file_name, lowX, highX, numLinesX, lowY, highY, numLinesY, numBuckets);
+							if(fileManager.createGridFile(file_name, lowX, highX, numLinesX, lowY, highY, numLinesY, numBuckets)){
+								System.out.println("Finished Insert Successfully \n");
+							}
+							else{
+								System.out.println("Error");
+							}
 							break;
 							
 						//add to the gridfile if line starts with i
@@ -123,39 +128,38 @@ public class GridFileManager {
 			System.out.println("Connection to database has been established.");
             
 			//create row in GRID_FILE
-	        String createGridFile = "INSERT INTO GRID_FILE VALUES ( 1, " + "'" + fileName + "' , " + numBuckets+ ")";
+	        String createGridFile = "INSERT INTO GRID_FILE(NAME, NUM_BUCKETS) VALUES (" + "'" + fileName + "' , " + numBuckets+ ")";
 	        PreparedStatement createFile = conn.prepareStatement(createGridFile);
 	        createFile.execute();
 	        System.out.println("Created GRID FILE");
 	        
 	        //create row in GRIDX
-	        String createGridX = "INSERT INTO GRIDX VALUES ( 1, " + lowX + "," + highX + "," + numLinesX + ")";
+	        String createGridX = "INSERT INTO GRIDX(LOW_VALUE, HIGH_VALUE, NUM_LINES) VALUES (" + lowX + "," + highX + "," + numLinesX + ")";
 	        PreparedStatement createX = conn.prepareStatement(createGridX);
 	        createX.execute();
 	        System.out.println("Created GRIDX row");        
 	        
 	        //create row in GRIDY
-	        String createGridY = "INSERT INTO GRIDY VALUES (1, " + lowY + "," + highY + "," + numLinesY + ")";
+	        String createGridY = "INSERT INTO GRIDY(LOW_VALUE, HIGH_VALUE, NUM_LINES) VALUES (" + lowY + "," + highY + "," + numLinesY + ")";
 	        PreparedStatement createY = conn.prepareStatement(createGridY);
 	        createY.execute();
 	        System.out.println("Created GRIDY row");
 	        return true;
 	        
 	    } catch (SQLException e) {
-	        System.out.println(e.getMessage());
+	        return false;
 	    } finally {
 	        try {
 	        	//close connection
 	            if (conn != null) {
 	                conn.close();
-	                System.out.println("Close Connection \n");
+	                System.out.println("Close Connection");
 	            }
 	        } catch (SQLException ex) {
 	            System.out.println(ex.getMessage());
 	            			
 	        }
 	    }
-		return false;
 	}
 	
 	public boolean add(String fileName, GridRecord record){
