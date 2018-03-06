@@ -1,12 +1,13 @@
 import java.sql.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class GridFileManager {
 	
 	//path to test.sqlite file PLEASE CHANGE THIS
-	private String path = "src/test.sqlite";
+	private static String path = "src/test.sqlite";
 	
 	public GridFileManager(String databaseName) {
 		Connection conn = null;
@@ -162,14 +163,204 @@ public class GridFileManager {
 	    }
 	}
 	
+	
 	public boolean add(String fileName, GridRecord record){
 		System.out.print(fileName+ " " + record.toString() + "\n");
-		return false;
+		try{
+			//get the ID and NUM_BUCKETS from GRID_FILE
+			int id = 0; 
+			int num_buckets = 0;
+			String query = "SELECT ID, NUM_BUCKETS FROM GRID_FILE WHERE NAME = '" + fileName + "'";
+			String url = "jdbc:sqlite:" + path;
+	        Connection con = DriverManager.getConnection(url);                  
+	        Statement stmt = con.createStatement();                                                 
+	        ResultSet rs = stmt.executeQuery(query);
+	        while(rs.next()) {                                                                      
+	          id = rs.getInt(1);
+	          num_buckets = rs.getInt(2);
+	          System.out.println("ID: " + id + ", NUM_BUCKETS: " + num_buckets);
+	        }                                 
+	        rs.close();                                                                             
+	        stmt.close();                                                                           
+
+	        
+	        //Get the entry of GRIDX where the ID matches the ID of the grid file
+	        float low_x = 0;
+	        float high_x = 0;
+	        int num_x = 0;
+	        String gridX = "SELECT LOW_VALUE, HIGH_VALUE, NUM_LINES FROM GRIDX WHERE GRID_FILE_ID = " + id;
+	        ResultSet gridXset = stmt.executeQuery(gridX);
+	        while(gridXset.next()){
+	        	low_x = rs.getFloat(1);
+	        	high_x = rs.getFloat(2);
+	        	num_x = rs.getInt(3);
+	        	System.out.println("LOW_X: " + low_x + " HIGH_X: " + high_x + " NUM_X: " + num_x);
+	        }
+	        gridXset.close();
+	        
+	      //Get the entry of GRIDY where the ID matches the ID of the grid file
+	        float low_y = 0;
+	        float high_y = 0;
+	        int num_y = 0;
+	        String gridY = "SELECT LOW_VALUE, HIGH_VALUE, NUM_LINES FROM GRIDY WHERE GRID_FILE_ID = " + id;
+	        ResultSet gridYset = stmt.executeQuery(gridY);
+	        while(gridYset.next()){
+	        	low_y = rs.getFloat(1);
+	        	high_y = rs.getFloat(2);
+	        	num_y = rs.getInt(3);
+	        	System.out.println("LOW_Y: " + low_y + " HIGH_Y: " + high_y + " NUM_Y: " + num_y);
+	        }
+	        gridYset.close();
+	        
+	        float recordX = record.point.x;
+	        float recordY = record.point.y;
+	        float x_increment = (high_x - low_x)/(num_x - 1);
+	        float y_increment = (high_y - low_y)/(num_y-1);
+	        int bucketID = 0;
+	        
+	        for(float x = low_x; x < high_x; x += x_increment){
+	        	for(float y = low_y; y < high_y; y += y_increment){
+	        		bucketID++;
+	        		System.out.println("("+ x + "," + y + "), ");
+	        		if(recordX >= x &&  recordX < x + x_increment && recordY >= y && recordY <= y + y_increment){
+	        	        //Insert into Grid_FILE_ROW
+	        	        String insertGridRecord = "INSERT INTO GRID_FILE_ROW VALUES ("+ id + "," + bucketID + ","+ recordX + "," + recordY + ", '" + record.label + "')";
+	        	        PreparedStatement insert = con.prepareStatement(insertGridRecord);
+	        	        insert.execute();
+	        	        System.out.println("Inserted into Bucket: " + bucketID);
+	        	        break;
+	        		}
+	        		
+	        	}
+	        }
+	        
+	        System.out.println("\n");
+	        
+	        con.close();     
+	        return true;
+		} catch (Exception e) {
+			System.out.println("Error: Unable to Insert");
+			return false;
+		}
 	}
 	
 	public GridRecord[] lookup(String fileName, GridPoint pt1, GridPoint pt2, int limit_offset, int limit_count){
 		System.out.println(fileName  + " " + pt1.toString()  + " " + pt2.toString()  + " " + limit_offset  + " " + limit_count);
-		return null;
+		
+		ArrayList<GridRecord> recordList = new ArrayList<GridRecord>();
+		
+		try{
+			//get the ID and NUM_BUCKETS from GRID_FILE
+			int id = 0; 
+			String query = "SELECT ID FROM GRID_FILE WHERE NAME = '" + fileName + "'";
+			String url = "jdbc:sqlite:" + path;
+	        Connection con = DriverManager.getConnection(url);                  
+	        Statement stmt = con.createStatement();                                                 
+	        ResultSet rs = stmt.executeQuery(query);
+	        //get the ID of the Gridfile with the name "filename"
+	        while(rs.next()) {                                                                      
+	          id = rs.getInt(1);
+	        }       
+	        if(id == 0){
+	        	System.out.println("Grid not found");
+	        	return null;
+	        }
+	        rs.close();                                                                             
+	        stmt.close();   
+	        
+	        //Get the entry of GRIDX where the ID matches the ID of the grid file
+	        float low_x = 0;
+	        float high_x = 0;
+	        int num_x = 0;
+	        String gridX = "SELECT LOW_VALUE, HIGH_VALUE, NUM_LINES FROM GRIDX WHERE GRID_FILE_ID = " + id;
+	        ResultSet gridXset = stmt.executeQuery(gridX);
+	        while(gridXset.next()){
+	        	low_x = rs.getFloat(1);
+	        	high_x = rs.getFloat(2);
+	        	num_x = rs.getInt(3);
+	        }
+	        gridXset.close();
+	        
+	      //Get the entry of GRIDY where the ID matches the ID of the grid file
+	        float low_y = 0;
+	        float high_y = 0;
+	        int num_y = 0;
+	        String gridY = "SELECT LOW_VALUE, HIGH_VALUE, NUM_LINES FROM GRIDY WHERE GRID_FILE_ID = " + id;
+	        ResultSet gridYset = stmt.executeQuery(gridY);
+	        while(gridYset.next()){
+	        	low_y = rs.getFloat(1);
+	        	high_y = rs.getFloat(2);
+	        	num_y = rs.getInt(3);
+	        }
+	        gridYset.close();
+	        
+	        float pt1X = pt1.x;
+	        float pt1Y = pt1.y;
+	        float pt2X = pt2.x;
+	        float pt2Y = pt2.y;
+	        float x_increment = (high_x - low_x)/(num_x - 1);
+	        float y_increment = (high_y - low_y)/(num_y-1);
+	        int bucketID = 0;
+
+	        
+	        for(float x = low_x; x < high_x; x += x_increment){
+	        	for(float y = low_y; y < high_y; y += y_increment){
+	        		bucketID++;
+	        		//check if the current bucketId is within the selection rectangle
+	        		if((pt1X <= x + x_increment && pt2X >= x) && (pt1Y <= y + y_increment && pt2Y >= y)){
+
+	        			String coordinates = "SELECT X, Y, LABEL FROM GRID_FILE_ROW WHERE BUCKET_ID = " + bucketID + " AND GRID_FILE_ID = " + id;
+	        			ResultSet coordinateSet = stmt.executeQuery(coordinates);
+	        			
+	        			//get the x and y coords of all the points inside the bucket
+	        			while(coordinateSet.next()){
+	        	        	float resultX = coordinateSet.getFloat(1);
+	        	        	float resultY = coordinateSet.getFloat(2);
+	        	        	String label = coordinateSet.getString(3);
+	        	        	
+	        	        	//if the gridpoint is also within the selection rect, add it to the list
+	        	        	if(resultX >= pt1X && resultX <= pt2X && resultY >= pt1Y && resultY <= pt2Y){
+	    	        			//if the bucketId is within the selection rect, print out the bucketId
+	    	        			System.out.println("BUCKET ID: " + bucketID);
+	        	        		System.out.println("ADDED: X: " + resultX + " Y: " + resultY + " LABEL: " + label);
+	        	        		GridRecord record = new GridRecord(label, resultX, resultY);
+	        	        		recordList.add(record);
+	        	        		
+	        	        	}
+	        	        	
+	        	        	
+	        	        }
+	        			coordinateSet.close();
+	        			
+	        		}
+	        	}
+	        }
+	        
+	        //copy the arraylist of gridpoints to an array, but only starting from limit_offset to limit_count
+	        int offset = limit_offset;
+	        GridRecord[] recordArray = new GridRecord[recordList.size()];
+	        System.out.print("FINAL RECORD: [");
+	        for(int i = 0; i < recordList.size() && i < limit_count + limit_offset; i++){
+	        	if(offset != 0){
+	        		offset--;
+	        	}
+	        	else{
+	        		 System.out.print(recordList.get(i).label + ",");
+		        	recordArray[i] = recordList.get(i);
+	        	}
+	        	
+	        }
+	        System.out.println("]\n");
+	        
+	        
+	        return recordArray;
+	       
+		}
+		 catch (Exception e) {
+			 System.out.println("Failed:" + e.toString());
+			 return null;
+		}
+		
 	}
 	
 	//create the tables here
